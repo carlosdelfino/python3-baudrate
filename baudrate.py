@@ -101,10 +101,12 @@ class Baudrate:
         self.name = name
         self.auto_detect = auto
         self.verbose = verbose
-        self.index = len(self.BAUDRATES) - 1
+        self.index = 0
         self.valid_characters = []
         self.ctlc = False
         self.thread = None
+        self.startbaudrate = 0
+        self.endbaudate = self.index
 
         self._gen_char_list()
 
@@ -124,19 +126,30 @@ class Baudrate:
             sys.stderr.buffer.write(data)
             sys.stderr.buffer.flush()
 
-    def Open(self):
+    def Open(self, startbaudrate, endbaudrate):
         pass
+        self.startbaudrate = startbaudrate
+        self.endbaudrate = endbaudrate
+        self.countDown = startbaudrate > endbaudrate
         self.serial = serial.Serial(self.port, timeout=self.timeout)
+        self.index = startbaudrate
         self.NextBaudrate(0)
 
     def NextBaudrate(self, updn):
 
-        self.index += updn
+        if self.countDown:
+           self.index -= updn
+           if self.index < self.endbaudrate:
+              self.index = self.startbaudrate
+           elif self.index > self.startbaudrate:
+              self.index = endbaudrate
+        else:
+           self.index += updn
+           if self.index > self.endbaudrate:
+              self.index = self.startbaudrate
+           elif self.index < self.startbaudrate:
+              self.index = endbaudrate
 
-        if self.index >= len(self.BAUDRATES):
-            self.index = 0
-        elif self.index < 0:
-            self.index = len(self.BAUDRATES) - 1
 
         sys.stderr.write('\n\n@@@@@@@@@@@@@@@@@@@@@ Baudrate: %s @@@@@@@@@@@@@@@@@@@@@\n\n' % self.BAUDRATES[self.index])
 
@@ -172,6 +185,7 @@ class Baudrate:
                     elif byte in self.VOWELS:
                         vowels += 1
 
+
                     count += 1
                 else:
                     clear_counters = True
@@ -187,7 +201,7 @@ class Baudrate:
 
             if timed_out and self.auto_detect:
                 start_time = 0
-                self.NextBaudrate(-1)
+                self.NextBaudrate(1)
                 clear_counters = True
                 timed_out = False
 
@@ -278,9 +292,12 @@ if __name__ == '__main__':
         timeout = 1
         name = None
         port = '/dev/ttyUSB0'
+        endbaudrate = len(Baudrate.BAUDRATES) - 1
+        startbaudrate = 0
+        countdown = True
 
         try:
-            (opts, args) = GetOpt(sys.argv[1:], 'p:t:c:n:abqh')
+            (opts, args) = GetOpt(sys.argv[1:], 'e:s:p:t:c:n:abqh')
         except GetoptError as e:
             print(e)
             usage()
@@ -302,8 +319,13 @@ if __name__ == '__main__':
                 display = True
             elif opt == '-q':
                 verbose = False
+            elif opt == '-e':  # value of end baudrate
+                endbaudrate = Baudrate.BAUDRATES.index(arg)
+            elif opt == '-s': # value of start baudrate
+                startbaudrate = Baudrate.BAUDRATES.index(arg)
             else:
                 usage()
+
 
         baud = Baudrate(port, threshold=threshold, timeout=timeout, name=name, verbose=verbose, auto=auto)
 
@@ -315,11 +337,16 @@ if __name__ == '__main__':
         else:
             print("")
             print("Starting baudrate detection on %s, turn on your serial device now." % port)
+            print("Using baudrate:")
+            print("\tFrom %s"% Baudrate.BAUDRATES[startbaudrate])
+            print("\tto %s"% Baudrate.BAUDRATES[endbaudrate])
             print("Press Up/Down to switch baudrates.")
             print("Press Ctl+C to quit.")
+            print("\nPress 'Enter' to start! ", end=" ")
+            sys.stdin.readline().strip()
             print("")
 
-            baud.Open()
+            baud.Open(startbaudrate=startbaudrate, endbaudrate=endbaudrate)
 
             try:
                 rate = baud.Detect()

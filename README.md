@@ -26,6 +26,10 @@ Upgraded to Python3 by @Loris1123: https://github.com/Loris1123
 
 Modernized by Sick.Codes @sickcodes : https://github.com/sickcodes
 
+New resources:
+ * Carlos Delfino @carlosdelfino : https://carlosdelfino.eti.br
+
+
 # Follow for Updates
 
 https://twitter.com/sickcodes
