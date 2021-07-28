@@ -105,7 +105,7 @@ class Baudrate:
         self.valid_characters = []
         self.ctlc = False
         self.thread = None
-        self.startbaudrate = 0
+        self.startbaudrate = len(self.BAUDRATES) - 1
         self.endbaudate = self.index
 
         self._gen_char_list()
@@ -130,25 +130,17 @@ class Baudrate:
         pass
         self.startbaudrate = startbaudrate
         self.endbaudrate = endbaudrate
-        self.countDown = startbaudrate > endbaudrate
         self.serial = serial.Serial(self.port, timeout=self.timeout)
         self.index = startbaudrate
         self.NextBaudrate(0)
 
     def NextBaudrate(self, updn):
 
-        if self.countDown:
-           self.index -= updn
-           if self.index < self.endbaudrate:
-              self.index = self.startbaudrate
-           elif self.index > self.startbaudrate:
-              self.index = endbaudrate
-        else:
-           self.index += updn
-           if self.index > self.endbaudrate:
-              self.index = self.startbaudrate
-           elif self.index < self.startbaudrate:
-              self.index = endbaudrate
+        self.index -= updn
+        if self.index < self.endbaudrate:
+            self.index = self.startbaudrate
+        elif self.index > self.startbaudrate:
+           self.index = endbaudrate
 
 
         sys.stderr.write('\n\n@@@@@@@@@@@@@@@@@@@@@ Baudrate: %s @@@@@@@@@@@@@@@@@@@@@\n\n' % self.BAUDRATES[self.index])
@@ -261,6 +253,10 @@ class Baudrate:
 
 if __name__ == '__main__':
 
+    def usageStartEnd(start, end):
+        print("ATENTION:")
+        print("Start baudrate ({start}) must be greater than end baudratei ({end}).".format(start=start, end=end))
+        print("Starting the tests from the lowest baudrate will generate false positives, so the test is always successful starting from the highest to the lowest.")
 
     def usage():
         baud = Baudrate()
@@ -292,9 +288,8 @@ if __name__ == '__main__':
         timeout = 1
         name = None
         port = '/dev/ttyUSB0'
-        endbaudrate = len(Baudrate.BAUDRATES) - 1
-        startbaudrate = 0
-        countdown = True
+        startbaudrate = len(Baudrate.BAUDRATES) - 1
+        endbaudrate = 0
 
         try:
             (opts, args) = GetOpt(sys.argv[1:], 'e:s:p:t:c:n:abqh')
@@ -326,6 +321,9 @@ if __name__ == '__main__':
             else:
                 usage()
 
+        if startbaudrate < endbaudrate:
+            usageStartEnd(start=Baudrate.BAUDRATES[startbaudrate], end=Baudrate.BAUDRATES[endbaudrate])
+            usage()
 
         baud = Baudrate(port, threshold=threshold, timeout=timeout, name=name, verbose=verbose, auto=auto)
 
